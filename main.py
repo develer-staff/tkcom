@@ -8,7 +8,7 @@ import threading
 
 
 window = Tk() 
-window.geometry('400x480')
+window.geometry('600x300')
 window.title("tkcom")
 cb_ports = Combobox(window, width=10)
 
