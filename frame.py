@@ -4,26 +4,8 @@ import serial
 import serial.tools.list_ports
 from tkinter import scrolledtext
 import threading
+      
 
-root = Tk()
-
-
-footframe = Frame(root)
-footframe.pack(anchor = NW, side = BOTTOM)
-
-bottomframe = Frame(root)
-bottomframe.pack(anchor = NW, side = BOTTOM )
-
-centerframe = Frame(root)
-centerframe.pack(anchor = NW, side = BOTTOM )
-
-topframe = Frame(root)
-topframe.pack(anchor = NW, side = BOTTOM)
-
-
-cb_ports = Combobox(topframe, width=10)
-
-killed = False
 
 class thread_with_trace(threading.Thread): 
     def __init__(self, *args, **keywords): 
@@ -72,7 +54,24 @@ def read_port():
             while 1:
                 txt_output.insert(INSERT,ser.readline())
                 topframe.update()
-                
+
+root = Tk()
+
+footframe = Frame(root)
+footframe.pack(anchor = NW, side = BOTTOM)
+
+bottomframe = Frame(root)
+bottomframe.pack(anchor = NW, side = BOTTOM )
+
+centerframe = Frame(root)
+centerframe.pack(anchor = NW, side = BOTTOM )
+
+topframe = Frame(root)
+topframe.pack(anchor = NW, side = BOTTOM)
+
+cb_ports = Combobox(topframe, width=10)
+
+killed = False
 
 t = thread_with_trace(target=read_port)
 
