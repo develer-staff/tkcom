@@ -39,6 +39,13 @@ def fmt_line(line):
     print(line)
     return line
 
+def temp_getter(compl_line):
+    temp = compl_line.split(";")[0]
+    temp = temp.split(":")[1]
+    temp = temp[:-1]
+    phase = compl_line.split("/")[1]+"/"+compl_line.split("/")[2]
+    return temp,phase
+
 class Writethread(threading.Thread): 
     def __init__(self, *args, **keywords): 
         threading.Thread.__init__(self, *args, **keywords)
@@ -77,13 +84,23 @@ class Fieldmaneger():
         self.f = open(self.log_file, "w+")
         gui.lbl_log.config(text = "Log file: %s" % self.log_file)
         self.compl_line = ""
+        self.temp = ""
+        self.phase = ""
         
     def readtotext(self):
         self.line = self.serialport.read_from_port()
-        self.compl_line = self.compl_line + self.line
         self.text_field.insert(INSERT,self.line)
-        self.f.write(fmt_line(self.compl_line))
-        self.f.flush()
+        if self.line:
+            self.compl_line = self.compl_line + self.line   
+            if "\r\n" == self.compl_line[-2:]:
+                if "TEMP" == self.compl_line[:4]:
+                    self.temp,self.phase = temp_getter(self.compl_line)
+                else:
+                    self.f.write(fmt_line(self.compl_line[:-2] + self.temp + ";" + self.phase))
+                    self.f.flush()
+                self.compl_line = ""
+        #self.f.write(fmt_line(self.compl_line))
+        #self.f.flush()
         
 class Serialmanager():
     def __init__(self,port, baudrate, bytesize, parity, stopbits):
