@@ -1,10 +1,14 @@
 from Tkinter import *
 from tkinter.ttk import *
+import Tkinter, Tkconstants, tkFileDialog
 import serial
 import serial.tools.list_ports
 from tkinter import scrolledtext
 import threading
 import time
+import sys
+import datetime
+import os
 
 baud_values = ["110", "150", "300", "1200", "2400", "4800", "9600", "19200", "38400", "57600", "115200", "230400", "460800", "921600"]
 
@@ -22,6 +26,18 @@ bytesize_values = { "5": serial.FIVEBITS,
 stopbits_values = { "1": serial.STOPBITS_ONE,
                    "1.5": serial.STOPBITS_ONE_POINT_FIVE,
                    "2": serial.STOPBITS_TWO }
+
+FILE_NAME_FMT = "serial_log_%Y%m%d-%H%M%S.log"
+
+log_dir = "/tmp"
+
+log_filename = datetime.datetime.today().strftime(FILE_NAME_FMT)
+
+def fmt_line(line):
+    pre = datetime.datetime.today().strftime("%a, %d %b %Y %H:%M:%S")
+    line = "%s;%s\n" % (pre, line)
+    print(line)
+    return line
 
 class Writethread(threading.Thread): 
     def __init__(self, *args, **keywords): 
@@ -54,13 +70,21 @@ class Writethread(threading.Thread):
         self.killed = True
         
 class Fieldmaneger():
-    def __init__(self,text_field,serialport):
+    def __init__(self,gui,serialport):
         self.serialport = serialport
-        self.text_field = text_field
-    
+        self.text_field = gui.txt_output
+        self.log_file = os.path.join(log_dir, log_filename)
+        self.f = open(self.log_file, "w+")
+        gui.lbl_log.config(text = "Log file: %s" % self.log_file)
+        self.compl_line = ""
+        
     def readtotext(self):
-        self.text_field.insert(INSERT,self.serialport.readline())
-
+        self.line = self.serialport.read_from_port()
+        self.compl_line = self.compl_line + self.line
+        self.text_field.insert(INSERT,self.line)
+        self.f.write(fmt_line(self.compl_line))
+        self.f.flush()
+        
 class Serialmanager():
     def __init__(self,port, baudrate, bytesize, parity, stopbits):
         self.serialport = serial.Serial(port, baudrate, bytesize, parity, stopbits, timeout=None)
@@ -75,6 +99,9 @@ class Gui:
     def __init__(self):       
         self.write_thread = Writethread(target=self.read)
         self.root = Tk()
+
+        self.logsection = Frame(self.root)
+        self.logsection.pack(anchor = NW, side = BOTTOM)
         
         self.footframe = Frame(self.root)
         self.footframe.pack(anchor = NW, side = BOTTOM)
@@ -117,6 +144,9 @@ class Gui:
         self.txt_to_send = Text(self.footframe, width=50, height=1)
         self.txt_to_send.pack(side = RIGHT)
 
+        self.lbl_log = Label(self.logsection, text="")
+        self.lbl_log.pack(side = LEFT)
+        
         self.lbl_parity = Label(self.centerframe, text="Parity:")
         self.lbl_parity.pack(side = LEFT)
 
@@ -165,10 +195,11 @@ class Gui:
         self.write_thread.kill()
 
     def read(self):
-        #with serial.Serial(port = self.cb_ports.get(), baudrate = int(self.cb_baud_rate.get()), bytesize = bytesize_values.get(self.cb_bytesize.get()), parity = parity_values.get(self.cb_parity.get()), stopbits = stopbits_values.get(self.cb_stopbit.get()) , timeout=None) as ser:
         self.serial = Serialmanager(port = self.cb_ports.get(), baudrate = int(self.cb_baud_rate.get()), bytesize = bytesize_values.get(self.cb_bytesize.get()), parity = parity_values.get(self.cb_parity.get()), stopbits = stopbits_values.get(self.cb_stopbit.get()))   
+        self.fm = Fieldmaneger(self,self.serial)
         while True:
-                self.txt_output.insert(INSERT,self.serial.read_from_port())
+                self.fm.readtotext()
+                #self.txt_output.insert(INSERT,self.serial.read_from_port())
 
     def send(self):
         text = self.txt_to_send.get("1.0",END)
@@ -177,6 +208,8 @@ class Gui:
     
     def clear(self):
         self.txt_output.delete('1.0', END)
+
+    
 
 
 def main():
